@@ -4,124 +4,13 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Fixed Dark Mode Toggle</title>
-
-	<style>
-	:root
-	{
-		--bg-color: #ffffff;
-		--text-color: #000000;
-	}
-
-	body.dark-mode
-	{
-		--bg-color: #121212;
-		--text-color: #ffffff;
-	}
-
-	body
-	{
-		font-family: Arial, sans-serif;
-		margin: 0;
-		padding: 20px;
-		padding-top: 40px;
-		padding-left: 70px;
-
-		background-color: var(--bg-color);
-		color: var(--text-color);
-	}
-
-	a
-	{
-		color: var(--text-color);
-		text-decoration: underline;
-	}
-
-	a:visited
-	{
-		color: #888888;
-		color: var(--text-color);
-	}
-
-	a:hover
-	{
-		color: var(--bg-color);
-		background-color: var(--text-color);
-		text-decoration: none;
-		padding: 2px 4px;
-	}
-
-	a:active
-	{
-		color: red;
-	}
-
-
-	#dark-mode-toggle
-		{
-		position: fixed;
-		top: 15px;
-		right: 15px;
-		z-index: 1000;
-
-		padding: 8px 15px;
-		cursor: pointer;
-
-		background-color: var(--text-color);
-		color: var(--bg-color);
-		border: 1px solid var(--text-color);
-	}
-	</style>
+	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
 	<button id="dark-mode-toggle"></button>
 
 	<h1>balls</h1>
 
-	<script>
-
-		const toggleButton = document.getElementById('dark-mode-toggle');
-		const body = document.body;
-		const localStorageKey = 'darkModeEnabled';
-
-		function applyTheme(isDark)
-		{
-			if (isDark)
-			{
-				body.classList.add('dark-mode');
-				toggleButton.textContent = 'Switch to Light Mode';
-				localStorage.setItem(localStorageKey, 'true');
-			}
-			else
-			{
-				body.classList.remove('dark-mode');
-				toggleButton.textContent = 'Switch to Dark Mode';
-				localStorage.setItem(localStorageKey, 'false');
-			}
-		}
-
-		function loadTheme()
-		{
-			const savedTheme = localStorage.getItem(localStorageKey);
-
-			if (savedTheme !== null)
-			{
-				applyTheme(savedTheme === 'true');
-			}
-			else
-			{
-				const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-				applyTheme(prefersDark);
-			}
-		}
-		loadTheme();
-
-		toggleButton.addEventListener('click', function()
-			{
-				const isCurrentlyDark = body.classList.contains('dark-mode');
-
-				applyTheme(!isCurrentlyDark);
-			}
-		);
-	</script>
+	<script src="script.js"></script>
 </body>
 </html>
