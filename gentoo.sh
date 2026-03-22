@@ -146,7 +146,7 @@ mount -t sysfs none /mnt/sys
 
 cp /etc/resolv.conf /mnt/etc/resolv.conf
 
-emaint -a sync
+chroot /mnt emaint -a sync
 
 echo -e 'configure:\n/etc/portage/make.conf\neselect profile/locale\n/etc/timezone\n/etc/locale.gen\nrecommended to use: cpuid2cpuflags gentoolkit\ngcc -march=native -Q --help=target | grep -i march\nexit to continue'
 chroot /mnt
