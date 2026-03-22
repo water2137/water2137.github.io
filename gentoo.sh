@@ -138,7 +138,7 @@ case "${INSTALL}" in
 esac
 
 echo 'unpacking stage3'
-tar xpf "${FILENAME}" -C /mnt
+tar xpf "${FILENAME}" --xattrs-include='*.*' --numeric-owner -C /mnt
 
 mount -t proc none /mnt/proc
 mount -t devtmpfs none /mnt/dev
