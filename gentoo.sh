@@ -10,11 +10,59 @@ cd "${TMP_DIR}"
 gpg --auto-key-locate=clear,nodefault,wkd --locate-key releng@gentoo.org
 
 printf 'arch: '
-read ARCH
+read -r ARCH
 printf 'type: '
-read TYPE
+read -r TYPE
 printf 'install [N/y]: '
-read INSTALL
+read -r INSTALL
+
+case "${INSTALL}" in
+	[yY]*)
+		printf 'disk: '
+		read -r DISK
+
+		printf 'preferred partitioner: '
+		read -r PARTER
+		"${PARTER}" "${DISK}"
+
+		printf 'uefi [N/y]: '
+		read -r UEFI_
+
+		case "${UEFI_}" in
+			[yY])
+				UEFI=1
+				;;
+			*)
+				UEFI=0
+				;;
+		esac
+
+		[ "${UEFI}" -ne 0 ] &&
+			{
+				printf 'efi part: '
+				read -r EFI_PART
+
+				mkfs.vfat -F 32 "${EFI_PART}"
+			}
+
+		printf 'root part: '
+		read -r ROOT_PART
+
+		printf 'root formatter: '
+		read -r ROOT_FMTR
+
+		"${ROOT_FMTR}" "${ROOT_PART}"
+
+		mount "${ROOT_PART}" /mnt
+
+		cd ..
+		mv "${TMP_DIR}" /mnt
+		cd "/mnt/${TMP_DIR}"
+		;;
+	*)
+		:
+		;;
+esac
 
 DISTFILES="${DISTFILES_BASE}/releases/${ARCH}/autobuilds/"
 LATEST_FILE="latest-${TYPE}.txt"
@@ -26,9 +74,9 @@ gpg --verify "${LATEST_FILE}"
 
 PATHS=$(
 	awk '
-		/^-----BEGIN PGP SIGNED MESSAGE-----/ {inmsg=1; next}
-		/^-----BEGIN PGP SIGNATURE-----/ {exit}
-		inmsg && /^[^#[:space:]]/ {print $1}
+	/^-----BEGIN PGP SIGNED MESSAGE-----/ {inmsg=1; next}
+	/^-----BEGIN PGP SIGNATURE-----/ {exit}
+	inmsg && /^[^#[:space:]]/ {print $1}
 	' ${LATEST_FILE}
 )
 
@@ -41,7 +89,7 @@ do
 	i=$((i + 1))
 done
 printf "choose: "
-read CHOICE
+read -r CHOICE
 
 case ${CHOICE} in
 	''|*[!0-9]*) echo "not a number"; exit 1 ;;
@@ -89,43 +137,6 @@ case "${INSTALL}" in
 		;;
 esac
 
-printf 'uefi [N/y]: '
-read UEFI_
-
-case "${UEFI_}" in
-	[yY])
-		UEFI=1
-		;;
-	*)
-		UEFI=0
-		;;
-esac
-
-printf 'disk: '
-read DISK
-
-printf 'preferred partitioner: '
-read PARTER
-"${PARTER}" "${DISK}"
-
-[ "${UEFI}" -ne 0 ] &&
-{
-	printf 'efi part: '
-	read EFI_PART
-
-	mkfs.vfat -F 32 "${EFI_PART}"
-}
-
-printf 'root part: '
-read ROOT_PART
-
-printf 'root formatter: '
-read ROOT_FMTR
-
-"${ROOT_FMTR}" "${ROOT_PART}"
-
-mount "${ROOT_PART}" /mnt
-
 echo 'unpacking stage3'
 tar xpf "${FILENAME}" -C /mnt
 
@@ -150,13 +161,13 @@ chroot /mnt
 mkdir -p /boot/grub
 chroot /mnt /bin/bash -c "grub-mkconfig -o /boot/grub/grub.cfg"
 [ "${UEFI}" -ne 0 ] &&
-{
-	chroot /mnt /bin/bash -c "grub-install --efi-directory=${EFI_PART}"
-}
+	{
+		chroot /mnt /bin/bash -c "grub-install --efi-directory=${EFI_PART}"
+	}
 ||
-{
-	chroot /mnt /bin/bash -c "grub-install ${DISK}"
-}
+	{
+		chroot /mnt /bin/bash -c "grub-install ${DISK}"
+	}
 
 chroot /mnt /bin/bash -c "passwd"
 
@@ -167,9 +178,9 @@ exit
 
 example shits (example for my pc might not work for u)
 im on CPU: 12th Gen Intel(R) Core(TM) i5-12600KF (16) @ 4.90 GHz
-	  GPU: NVIDIA GeForce RTX 3060 [Discrete]
-	  and you might not be
-	  so dont blindly copy you dumbahh monkey
+GPU: NVIDIA GeForce RTX 3060 [Discrete]
+and you might not be
+so dont blindly copy you dumbahh monkey
 make.conf
 # These settings were set by the catalyst build script that automatically
 # built this stage.
@@ -201,21 +212,21 @@ LC_MESSAGES=C.UTF-8
 
 heres some other common shits for those make.conf options
 if thats not ur march u can use gcc -march=native -Q --help=target | grep -i march
-VIDEO_CARDS
-amdgpu radeonsi
-intel iris
-virtio
+	VIDEO_CARDS
+	amdgpu radeonsi
+	intel iris
+	virtio
 
-how to fucking update
-emaint -a sync
-emerge -avuDN @world
-emerge -va @preserved-rebuild || revdep-rebuild
-emerge -vac
-eclean-dist
-dispatch-conf
-eselect news read
+	how to fucking update
+	emaint -a sync
+	emerge -avuDN @world
+	emerge -va @preserved-rebuild || revdep-rebuild
+	emerge -vac
+	eclean-dist
+	dispatch-conf
+	eselect news read
 
-and if linux updated u needa eselect yo kernel then zcat /proc/config.gz to .config
-and if u didnt have config.gz enabled check /boot
-and if config not there then u just a dumbahh mf
-and then just rebuild and reinstall and then reconfig grub
+	and if linux updated u needa eselect yo kernel then zcat /proc/config.gz to .config
+	and if u didnt have config.gz enabled check /boot
+	and if config not there then u just a dumbahh mf
+	and then just rebuild and reinstall and then reconfig grub
