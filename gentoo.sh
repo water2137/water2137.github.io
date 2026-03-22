@@ -140,9 +140,6 @@ esac
 echo 'unpacking stage3'
 tar xpf "${FILENAME}" -C /mnt
 
-vi /mnt/etc/resolv.conf
-vi /mnt/etc/portage/make.conf
-
 mount -t proc none /mnt/proc
 mount -t devtmpfs none /mnt/dev
 mount -t sysfs none /mnt/sys
