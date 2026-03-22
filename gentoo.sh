@@ -146,9 +146,11 @@ mount -t sysfs none /mnt/sys
 
 cp /etc/resolv.conf /mnt/etc/resolv.conf
 
+chroot /mnt /bin/bash -c 'eselect profile list | less && printf "profile: " && read -r PROFILE && eselect profile set "${PROFILE}"'
+
 chroot /mnt emaint -a sync
 
-echo -e 'configure:\n/etc/portage/make.conf\neselect profile/locale\n/etc/timezone\n/etc/locale.gen\nrecommended to use: cpuid2cpuflags gentoolkit\ngcc -march=native -Q --help=target | grep -i march\nexit to continue'
+echo -e 'configure:\n/etc/portage/make.conf\neselect locale\n/etc/timezone\n/etc/locale.gen\nrecommended to use: cpuid2cpuflags gentoolkit\ngcc -march=native -Q --help=target | grep -i march\nexit to continue'
 chroot /mnt
 chroot /mnt /bin/bash -c "emerge --config sys-libs/timezone-data && locale-gen && env-update && . /etc/profile && emerge -avuDN @world"
 echo 'sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE' >> /mnt/etc/portage/package.license
