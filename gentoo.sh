@@ -3,13 +3,18 @@ set -e
 TMP_DIR=`mktemp -d ./tmp.XXXXXXXX`
 mkdir -p "${TMP_DIR}"
 cd "${TMP_DIR}"
-: "${ARCH:=${1:-amd64}}"
-: "${TYPE:=${2:-stage3}}"
 : "${DISTFILES_BASE:=https://distfiles.gentoo.org}"
 : "${KEYSERVER:=https://keys.gentoo.org}"
 : "${WGET:=wget -T 5}"
 
 gpg --auto-key-locate=clear,nodefault,wkd --locate-key releng@gentoo.org
+
+printf 'arch: '
+read ARCH
+printf 'type: '
+read TYPE
+printf 'install [N/y]: '
+read INSTALL
 
 DISTFILES="${DISTFILES_BASE}/releases/${ARCH}/autobuilds/"
 LATEST_FILE="latest-${TYPE}.txt"
@@ -75,60 +80,94 @@ mv `getfile` ..
 cd ..
 rm -rf "${TMP_DIR}"
 
+case "${INSTALL}" in
+	[yY])
+		:
+		;;
+	*)
+		exit 1
+		;;
+esac
+
+printf 'uefi [N/y]: '
+read UEFI_
+
+case "${UEFI_}" in
+	[yY])
+		UEFI=1
+		;;
+	*)
+		UEFI=0
+		;;
+esac
+
+printf 'disk: '
+read DISK
+
+printf 'preferred partitioner: '
+read PARTER
+"${PARTER}" "${DISK}"
+
+[ "${UEFI}" -ne 0 ] &&
+{
+	printf 'efi part: '
+	read EFI_PART
+
+	mkfs.vfat -F 32 "${EFI_PART}"
+}
+
+printf 'root part: '
+read ROOT_PART
+
+printf 'root formatter: '
+read ROOT_FMTR
+
+"${ROOT_FMTR}" "${ROOT_PART}"
+
+mount "${ROOT_PART}" /mnt
+
+echo 'unpacking stage3'
+tar xpf "${FILENAME}" -C /mnt
+
+vi /mnt/etc/resolv.conf
+vi /mnt/etc/portage/make.conf
+
+mount -t proc none /mnt/proc
+mount -t devtmpfs none /mnt/dev
+mount -t sysfs none /mnt/sys
+
+cp /etc/resolv.conf /mnt/etc/resolv.conf
+
+emaint -a sync
+
+echo -e 'configure:\n/etc/portage/make.conf\neselect profile/locale\n/etc/timezone\n/etc/locale.gen\nrecommended to use: cpuid2cpuflags gentoolkit\ngcc -march=native -Q --help=target | grep -i march\nexit to continue'
+chroot /mnt
+chroot /mnt /bin/bash -c "emerge --config sys-libs/timezone-data && locale-gen && env-update && . /etc/profile && emerge -avuDN @world"
+echo 'sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE' >> /mnt/etc/portage/package.license
+chroot /mnt /bin/bash -c "emerge gentoo-sources grub linux-firmware installkernel dhcpcd $( [ "${UEFI}" -ne 0 ] && echo "efibootmgr" )"
+echo -e 'configure:\nfstab\neselect kernel\nbuild and install /usr/src/linux\nexit to continue'
+chroot /mnt
+mkdir -p /boot/grub
+chroot /mnt /bin/bash -c "grub-mkconfig -o /boot/grub/grub.cfg"
+[ "${UEFI}" -ne 0 ] &&
+{
+	chroot /mnt /bin/bash -c "grub-install --efi-directory=${EFI_PART}"
+}
+||
+{
+	chroot /mnt /bin/bash -c "grub-install ${DISK}"
+}
+
+chroot /mnt /bin/bash -c "passwd"
+
+echo 'probably installed'
+bash
+
 exit
 
-gentoo shitty install guide (i left out binpkgs cuz fuck you)
-do not follow this if u havent installed a gentoo system using the official handbook first
-i assume you already know yo shit
-partition yo shit
-format that shit
-mount that shit
-cd to that shit
-run this script
-use this big fat motherfucker
-tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner
-actually shi dont use v since u probly on vesa or gop
-mount proc devtmpfs sysfs to yo shit
-chroot . to that shit
-set yo /etc/resolv.conf
-example nameserver 1.1.1.1
-emaint -a sync that shit
-recommend emerging tmux and your favorite editor by this stage as well as cpuid2cpuflags for CPU_FLAGS_*
-and gentoolkit for good shits
-eselect profile list/set if not already set
-usually already set in modern tarballs
-set yo /etc/portage/make.conf to your good shit
-emerge -avuDN @world that shit
-echo "Asia/Singapore" > /etc/timezone or whatever region u in
-emerge --config sys-libs/timezone-data
-maybe do manually `ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime` if no work
-edit /etc/locale.gen and uncomment yo shit like en_US
-locale-gen
-eselect locale list
-eselect locale set yo shit
-env-update && . /etc/profile
-accept firmware like sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE or linux-fw-redistributable
-emerge gentoo-sources grub linux-firmware optionally genkernel if you a lazy bastard or efibootmgr if you on uefi
-and whatever fucking network shit u use like dhcpcd or networkmanager
-and installkernel cuz you not a fucking lilo user
-set yo fstab like some /dev/sda1 / ext4 defaults 0 1 or whatever the fuck disk or fs u got
-eselect kernel list
-eselect kernel set to yo shit
-cd /usr/src/linux
-do yo thang wit make menuconfig
-make install that shit
-or just fuckin genkernel if you lazy
-mkdir /boot/grub
-grub-mkconfig -o /boot/grub/grub.cfg
-grub-install to yo drive like /dev/sda
-or if efi grub-install --efi-directory=/mnt but mount boot partition like /dev/sda1 first
-where you mount does not matter unless you want to always mount it in fstab
-set up user and password
-reboot this bitch
-
-example shits (example for my pc)
+example shits (example for my pc might not work for u)
 im on CPU: 12th Gen Intel(R) Core(TM) i5-12600KF (16) @ 4.90 GHz
-      GPU: NVIDIA GeForce RTX 3060 [Discrete]
+	  GPU: NVIDIA GeForce RTX 3060 [Discrete]
 	  and you might not be
 	  so dont blindly copy you dumbahh monkey
 make.conf
