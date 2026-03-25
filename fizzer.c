@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 		perror("fopen FIZZBUZZ.c w");
 	}
 
-	fwrite("#include<unistd.h>\nint main()\n{\n\twrite(1, \"", 1, 43, file);
+	fwrite("#include<unistd.h>\nint main()\n{\n\tint w_out = write(1, \"", 1, 55, file);
 
 	for (; i <= COUNTS; i++)
 	{
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 			fwrite(count_buffer, fast, 1, file);
 			count += fast;
 		}
-		fprintf(file, "\\n");
+		fwrite("\\n", 1, 2, file);
 	}
 
 	i = fast_utoa64(count, count_buffer);
@@ -121,9 +121,9 @@ int main(int argc, char **argv)
 
 	memcpy(buffer, "\", ", 3);
 	memcpy(buffer + 3, count_buffer, i);
-	memcpy(buffer + i + 3, ");\n\treturn 0;\n}\n", 16);
+	memcpy(buffer + i + 3, ");\n\treturn w_out;\n}\n", 20);
 
-	fwrite(buffer, 19 + i, 1, file);
+	fwrite(buffer, 23 + i, 1, file);
 
 	fclose(file);
 	free(buffer);
@@ -135,7 +135,8 @@ int main(int argc, char **argv)
 		perror("fork");
 		exit(EXIT_FAILURE);
 	case 0:
-		execl("/usr/bin/cc", "cc", "FIZZBUZZ.c", "-o", argv[0], NULL);
+		unlink(argv[0]);
+		execl("/usr/bin/cc", "cc", "FIZZBUZZ.c", "-O3", "-s", "-o", argv[0], NULL);
 		perror("execl");
 		unlink("FIZZBUZZ.c");
 		_exit(EXIT_FAILURE);
@@ -164,4 +165,3 @@ int main(int argc, char **argv)
 
 	return EXIT_FAILURE;
 }
-
