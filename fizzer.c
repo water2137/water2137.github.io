@@ -44,8 +44,12 @@ int fast_utoa64(uint64_t value, char *buffer)
 	{
 		len += 1;
 	}
+	if (temp == 0ULL)
+	{
+		buffer[0] = '0';
+		return 1;
+	}
 
-	buffer[len] = '\0';
 	char *p = buffer + len;
 
 	while (value >= 100)
@@ -72,20 +76,30 @@ int fast_utoa64(uint64_t value, char *buffer)
 
 int main(int argc, char **argv)
 {
+	(void)argc;
 	uint64_t i = 1;
 	uint64_t count = COUNTS;
-	char count_buffer[21];
+	char count_buffer[20];
 	pid_t pid;
 	char *buffer;
 
-	FILE *file = fopen("./FIZZBUZZ.c", "w");
-	(void)argc;
-	if (!file)
+	char filename[] = "/tmp/FIZZBUZZ.XXXXXX";
+	int fd = mkstemp(filename);
+	if (fd == -1)
 	{
-		perror("fopen FIZZBUZZ.c w");
+		perror("mkstemp");
+		exit(EXIT_FAILURE);
 	}
 
-	fwrite("#include<unistd.h>\nint main(void)\n{\n\tint w_out = write(1, \"", 1, 59, file);
+	FILE *file = fdopen(fd, "w");
+	if (!file)
+	{
+		perror("fdopen tmpfile");
+		exit(EXIT_FAILURE);
+	}
+
+	fwrite("#include<unistd.h>\nint main(void)\n{\n\tint w_out = write(1, \"",
+		   1, 59, file);
 
 	for (; i <= COUNTS; i++)
 	{
@@ -113,7 +127,7 @@ int main(int argc, char **argv)
 
 	i = fast_utoa64(count, count_buffer);
 
-	buffer = malloc(23 + count);
+	buffer = malloc(23 + i);
 	if (!buffer)
 	{
 		perror("malloc");
@@ -128,19 +142,18 @@ int main(int argc, char **argv)
 	fclose(file);
 	free(buffer);
 
-	pid = fork();
+	pid = vfork();
 	switch (pid)
 	{
-	case -1:
+	case -1: // failure
 		perror("fork");
 		exit(EXIT_FAILURE);
-	case 0:
-	//	unlink(argv[0]);
-		execl("/usr/bin/cc", "cc", "FIZZBUZZ.c", "-O3", "-s", "-o", argv[0], NULL);
+	case 0: // child
+		execl("/usr/bin/cc", "cc", "-x", "c", filename, "-O3", "-s", "-march=native",
+			  "-o", argv[0], NULL);
 		perror("execl");
-	//	unlink("FIZZBUZZ.c");
 		_exit(EXIT_FAILURE);
-	default:
+	default: // parent
 	{
 		siginfo_t info;
 
@@ -152,12 +165,12 @@ int main(int argc, char **argv)
 
 		if (info.si_code == CLD_EXITED && info.si_status == EXIT_FAILURE)
 		{
-			write(1, "child is exit_failure\n", 22);
-			//unlink("FIZZBUZZ.c");
+			i = write(1, "child is exit_failure\n", 22);
 			exit(EXIT_FAILURE);
 		}
+		
+		unlink(filename);
 
-		unlink("FIZZBUZZ.c");
 		execl(argv[0], argv[0], NULL);
 		perror("execl");
 	}
