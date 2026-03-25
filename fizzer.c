@@ -72,8 +72,8 @@ int fast_utoa64(uint64_t value, char *buffer)
 
 int main(int argc, char **argv)
 {
-	int i = 1;
-	int count = COUNTS;
+	uint64_t i = 1;
+	uint64_t count = COUNTS;
 	char count_buffer[21];
 	pid_t pid;
 	char *buffer;
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 		perror("fopen FIZZBUZZ.c w");
 	}
 
-	fwrite("#include<unistd.h>\nint main()\n{\n\tint w_out = write(1, \"", 1, 55, file);
+	fwrite("#include<unistd.h>\nint main(void)\n{\n\tint w_out = write(1, \"", 1, 59, file);
 
 	for (; i <= COUNTS; i++)
 	{
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
 	i = fast_utoa64(count, count_buffer);
 
-	buffer = malloc(19 + count);
+	buffer = malloc(23 + count);
 	if (!buffer)
 	{
 		perror("malloc");
@@ -135,10 +135,10 @@ int main(int argc, char **argv)
 		perror("fork");
 		exit(EXIT_FAILURE);
 	case 0:
-		unlink(argv[0]);
+	//	unlink(argv[0]);
 		execl("/usr/bin/cc", "cc", "FIZZBUZZ.c", "-O3", "-s", "-o", argv[0], NULL);
 		perror("execl");
-		unlink("FIZZBUZZ.c");
+	//	unlink("FIZZBUZZ.c");
 		_exit(EXIT_FAILURE);
 	default:
 	{
@@ -152,8 +152,8 @@ int main(int argc, char **argv)
 
 		if (info.si_code == CLD_EXITED && info.si_status == EXIT_FAILURE)
 		{
-			printf("child is exit_failure\n");
-			unlink("FIZZBUZZ.c");
+			write(1, "child is exit_failure\n", 22);
+			//unlink("FIZZBUZZ.c");
 			exit(EXIT_FAILURE);
 		}
 
